@@ -51,9 +51,15 @@ def main(inputMap, outputMap, processingType, halfMap2=None, samplingRate=None, 
   if binaryMask is not None:
     assert processingType=="tightTarget", "Error, if binary mask provided, only -p tightTarget is allowed"
     binaryMask= os.path.expanduser(binaryMask)
-    checkpoint_fname= os.path.join(deepLearningModelDir, "deepEMhancer_masked.hd5")
+    # Try .h5 first for Keras 3 compatibility, fall back to .hd5
+    checkpoint_fname = os.path.join(deepLearningModelDir, "deepEMhancer_masked.h5")
+    if not os.path.isfile(checkpoint_fname):
+      checkpoint_fname = os.path.join(deepLearningModelDir, "deepEMhancer_masked.hd5")
   else:
-    checkpoint_fname= os.path.join(deepLearningModelDir, "deepEMhancer_"+processingType+".hd5")
+    # Try .h5 first for Keras 3 compatibility, fall back to .hd5
+    checkpoint_fname = os.path.join(deepLearningModelDir, "deepEMhancer_"+processingType+".h5")
+    if not os.path.isfile(checkpoint_fname):
+      checkpoint_fname = os.path.join(deepLearningModelDir, "deepEMhancer_"+processingType+".hd5")
 
   inputVolOrFname, boxSize = resolveHalfMapsOrInputMap(inputMap, halfMap2)
 

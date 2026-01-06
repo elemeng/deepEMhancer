@@ -14,19 +14,41 @@ def load_model(checkpoint_fname, custom_objects=None, lastLayerToFreeze=None, re
     else:
       custom_objects= codes["custom_objects"]
 
+  import shutil
+
+  # Handle Keras 3 requirement for .h5 extension
+  checkpoint_path = checkpoint_fname
+  temp_file = None
+  if checkpoint_fname.endswith('.hd5'):
+    # Check if we're using Keras 3
+    keras_version = None
+    try:
+      import keras
+      keras_version = keras.__version__
+    except ImportError:
+      pass
+
+    if keras_version and keras_version.startswith('3.'):
+      # Create a temporary symlink or copy with .h5 extension for Keras 3
+      import tempfile
+      temp_dir = tempfile.gettempdir()
+      temp_file = os.path.join(temp_dir, os.path.basename(checkpoint_fname).replace('.hd5', '.h5'))
+      if not os.path.exists(temp_file):
+        shutil.copy2(checkpoint_fname, temp_file)
+      checkpoint_path = temp_file
 
   if int(tf.__version__.split(".")[0]) > 1:
     from tensorflow.keras.models import load_model
   else:
       from keras.models import load_model
-      
+
   if nGpus>1:
     devices_names = list(map(lambda x:":".join( x.name.split(":")[-2:]), tf.config.list_physical_devices('GPU')))
     mirrored_strategy = tf.distribute.MirroredStrategy(devices= devices_names )
     with mirrored_strategy.scope():
-      model = load_model(checkpoint_fname, custom_objects=custom_objects )
+      model = load_model(checkpoint_path, custom_objects=custom_objects )
   else:
-      model = load_model(checkpoint_fname, custom_objects=custom_objects )
+      model = load_model(checkpoint_path, custom_objects=custom_objects )
 
   if lastLayerToFreeze is not None:
     layerFound= False
@@ -51,10 +73,60 @@ def load_model(checkpoint_fname, custom_objects=None, lastLayerToFreeze=None, re
 
 
 def getInputCubeSize(model):
+  # Try to get input shape from the first layer
+  input_layer = model.layers[0]
+
+  # Keras 3: Try to get from input_shape property
   try:
-    return model.layers[0].output_shape[0][1]
-  except TypeError:
-    return model.layers[0].output_shape[1]
+    if hasattr(input_layer, 'input_shape') and input_layer.input_shape is not None:
+      shape = input_layer.input_shape
+      if isinstance(shape, (list, tuple)) and len(shape) >= 2:
+        return shape[1]
+  except (AttributeError, TypeError):
+    pass
+
+  # Keras 3: Try to get from output_shape property
+  try:
+    if hasattr(input_layer, 'output_shape') and input_layer.output_shape is not None:
+      shape = input_layer.output_shape
+      if isinstance(shape, (list, tuple)) and len(shape) >= 2:
+        return shape[1]
+  except (AttributeError, TypeError):
+    pass
+
+  # Keras 3: Try to get from batch_input_shape property
+  try:
+    if hasattr(input_layer, 'batch_input_shape') and input_layer.batch_input_shape is not None:
+      shape = input_layer.batch_input_shape
+      if isinstance(shape, (list, tuple)) and len(shape) >= 2:
+        return shape[1]
+  except (AttributeError, TypeError):
+    pass
+
+  # Keras 3: Try to get from config
+  try:
+    config = input_layer.get_config()
+    if 'batch_shape' in config and config['batch_shape'] is not None:
+      shape = config['batch_shape']
+      if isinstance(shape, (list, tuple)) and len(shape) >= 2:
+        return shape[1]
+    elif 'shape' in config and config['shape'] is not None:
+      shape = config['shape']
+      if isinstance(shape, (list, tuple)) and len(shape) >= 1:
+        return shape[0]
+  except (AttributeError, TypeError, KeyError):
+    pass
+
+  # Try from model input shape
+  try:
+    if hasattr(model, 'input_shape') and model.input_shape is not None:
+      shape = model.input_shape
+      if isinstance(shape, (list, tuple)) and len(shape) >= 2:
+        return shape[1]
+  except (AttributeError, TypeError):
+    pass
+
+  raise ValueError("Unable to determine input cube size from model")
 
 
 def retrieveParamsFromHd5(fname, paramsList, codeList):

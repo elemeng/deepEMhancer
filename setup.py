@@ -23,22 +23,20 @@ def readme():
 
 
 install_requires = [
-  'numpy==1.23.*',
-  'scikit-image==0.19.*',
-  'scipy==1.9.*',
-  'joblib==1.2.*',
-  'mrcfile==1.4.*',
-  'requests==2.32.*',
-  'tqdm==4.66.3',
+  'numpy>=1.24,<2.0',
+  'scikit-image>=0.22',
+  'scipy>=1.14',
+  'joblib>=1.4',
+  'mrcfile>=1.4',
+  'requests>=2.32',
+  'tqdm>=4.66',
 ]
 
 installTfCpuOnly = os.environ.get("DEEPEMHANCER_CPU_ONLY", None)
 if not installTfCpuOnly:
-  tfTarget='tensorflow-gpu==2.10.*'
-#  install_requires.append("cuda-python==11.8.*") #Install cuda. Not working
-#  install_requires.append("nvidia-cudnn-cu11==8.5.*") #Install cuda. Not working
+  tfTarget='tensorflow[and-cuda]>=2.18'
 else:
-  tfTarget='tensorflow==2.10.*'
+  tfTarget='tensorflow>=2.18'
 install_requires.append(tfTarget)
 
 setup(name='deepEMhancer',

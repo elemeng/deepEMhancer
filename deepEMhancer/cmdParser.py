@@ -100,7 +100,18 @@ deepemhancer -p highRes -i path/to/inputVol.mrc -o  path/to/outputVol.mrc --nois
     deepLearningModelPath = DEFAULT_MODEL_DIR
   args["deepLearningModelPath"] = deepLearningModelPath
 
-  if not os.path.isfile(deepLearningModelPath) and not os.path.isfile( os.path.join(deepLearningModelPath, "deepEMhancer_tightTarget.hd5") ):
+  # Check for model files with either .h5 or .hd5 extension
+  model_found = False
+  if os.path.isfile(deepLearningModelPath):
+    model_found = True
+  else:
+    # Try both .h5 and .hd5 extensions
+    for ext in ['.h5', '.hd5']:
+      if os.path.isfile(os.path.join(deepLearningModelPath, "deepEMhancer_tightTarget" + ext)):
+        model_found = True
+        break
+
+  if not model_found:
     print(("Deep learning models not found at %s. Downloading default models with --download or " +
            "indicate its location with --deepLearningModelPath.") % DEFAULT_MODEL_DIR)
     sys.exit(1)
@@ -111,7 +122,6 @@ deepemhancer -p highRes -i path/to/inputVol.mrc -o  path/to/outputVol.mrc --nois
     del args["download"]
 
   return args
-
 
 if __name__=="__main__":
   print("Parser")
