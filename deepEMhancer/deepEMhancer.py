@@ -1,9 +1,17 @@
 import os
 import warnings
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+# Suppress TensorFlow warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress all TensorFlow C++ logs
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # Disable oneDNN optimizations warnings
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'  # Prevent GPU memory allocation warnings
+
+# Suppress Python warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", module="keras")
+warnings.filterwarnings("ignore", module="tensorflow")
 
 from .applyProcessVol.processVol import AutoProcessVol, resolveHalfMapsOrInputMap
 
