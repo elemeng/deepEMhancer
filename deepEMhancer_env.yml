@@ -13,6 +13,7 @@ dependencies:
   - tqdm=4.66
   - yaml=0.2
   - pip:
+      - --progress-bar on
       - tensorflow[and-cuda]>=2.18
       - mrcfile==1.4.3
       - scikit-image==0.24
